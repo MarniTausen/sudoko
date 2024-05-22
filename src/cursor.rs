@@ -1,4 +1,5 @@
 
+#[derive(Debug, Hash, Clone, Copy)]
 pub struct Cursor {
     pub row: usize,
     pub col: usize

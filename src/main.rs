@@ -29,6 +29,7 @@ fn main() {
         println!("[←↑↓→] move cursor, [1-9] enter value");
         println!("[backspace] remove value");
         println!("[n] generate a new puzzle");
+        println!("[l] lock values [u] unlock values");
         println!("[s] solve the puzzle");
         println!("[q/esc] quit");
         sudoko.find_possible_values(cursor.row, cursor.col).unwrap();
@@ -55,38 +56,70 @@ fn main() {
                 console::Key::Enter => todo!(),
                 console::Key::Escape => break 'main_loop,
                 console::Key::Backspace => {
-                    sudoko.set_value(cursor.row, cursor.col, SudokoValue::Empty(true)).unwrap()
+                    match sudoko.set_value(cursor.row, cursor.col, SudokoValue::Empty(true)) {
+                        Err(e) => println!("{e}"),
+                        Ok(_) => ()
+                    }
                 },
                 console::Key::Char(character) => {
                     match character {
                         'q' => break 'main_loop,
-                        's' => println!("Solve not implemted yet!") /* Solve sudoko puzzle */,
+                        's' => println!("Solve not implemented yet!") /* Solve sudoko puzzle */,
+                        'l' => sudoko.lock().unwrap(),
+                        'u' => sudoko.unlock(),
                         '1' => {
-                            sudoko.set_value(cursor.row, cursor.col, SudokoValue::One(true)).unwrap()
+                            match sudoko.set_value(cursor.row, cursor.col, SudokoValue::One(true)) {
+                                Err(e) => println!("{e}"),
+                                Ok(_) => ()
+                            }
                         },
                         '2' => {
-                            sudoko.set_value(cursor.row, cursor.col, SudokoValue::Two(true)).unwrap()
+                            match sudoko.set_value(cursor.row, cursor.col, SudokoValue::Two(true)) {
+                                Err(e) => println!("{e}"),
+                                Ok(_) => ()
+                            }
                         },
                         '3' => {
-                            sudoko.set_value(cursor.row, cursor.col, SudokoValue::Three(true)).unwrap()
+                            match sudoko.set_value(cursor.row, cursor.col, SudokoValue::Three(true)) {
+                                Err(e) => println!("{e}"),
+                                Ok(_) => ()
+                            }
                         },
                         '4' => {
-                            sudoko.set_value(cursor.row, cursor.col, SudokoValue::Four(true)).unwrap()
+                            match sudoko.set_value(cursor.row, cursor.col, SudokoValue::Four(true)) {
+                                Err(e) => println!("{e}"),
+                                Ok(_) => ()
+                            }
                         },
                         '5' => {
-                            sudoko.set_value(cursor.row, cursor.col, SudokoValue::Five(true)).unwrap()
+                            match sudoko.set_value(cursor.row, cursor.col, SudokoValue::Five(true)) {
+                                Err(e) => println!("{e}"),
+                                Ok(_) => ()
+                            }
                         },
                         '6' => {
-                            sudoko.set_value(cursor.row, cursor.col, SudokoValue::Six(true)).unwrap()
+                            match sudoko.set_value(cursor.row, cursor.col, SudokoValue::Six(true)) {
+                                Err(e) => println!("{e}"),
+                                Ok(_) => ()
+                            }
                         },
                         '7' => {
-                            sudoko.set_value(cursor.row, cursor.col, SudokoValue::Seven(true)).unwrap()
+                            match sudoko.set_value(cursor.row, cursor.col, SudokoValue::Seven(true)) {
+                                Err(e) => println!("{e}"),
+                                Ok(_) => ()
+                            }
                         },
                         '8' => {
-                            sudoko.set_value(cursor.row, cursor.col, SudokoValue::Eight(true)).unwrap()
+                            match sudoko.set_value(cursor.row, cursor.col, SudokoValue::Eight(true)) {
+                                Err(e) => println!("{e}"),
+                                Ok(_) => ()
+                            }
                         },
                         '9' => {
-                            sudoko.set_value(cursor.row, cursor.col, SudokoValue::Nine(true)).unwrap()
+                            match sudoko.set_value(cursor.row, cursor.col, SudokoValue::Nine(true)) {
+                                Err(e) => println!("{e}"),
+                                Ok(_) => ()
+                            }
                         },
                         _ => ()
                     }

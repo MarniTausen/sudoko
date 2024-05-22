@@ -1,7 +1,9 @@
-use std::{collections::HashSet, fmt::Display};
+use std::{collections::HashSet, fmt::Display, io::Empty, thread, time::Duration};
 
 use colored::Colorize;
 use itertools::Itertools;
+
+use crate::cursor::Cursor;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -21,21 +23,23 @@ pub struct SudokoIndex {
 //  3 - 4 - 5
 //  6 - 7 - 8
 // 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Sudoko {
     data: [SudokoBlock; 9],
-    selected: Option<SudokoIndex>
+    selected: Option<SudokoIndex>,
+    lock: HashSet<(usize, usize)>
 }
 
 impl Sudoko {
     pub fn new() -> Sudoko {
         Sudoko {
             data: [SudokoBlock::new(); 9],
-            selected: None
+            selected: None,
+            lock: HashSet::new()
         }
     }
 
-    fn convert_to_index(self, row: usize, col: usize) -> Result<SudokoIndex, String> {
+    fn convert_to_index(row: usize, col: usize) -> Result<SudokoIndex, String> {
         // Validate that row is betwen 1 and 9
         let (row_block, internal_row) = match row {
             1..=3 => (1, row),
@@ -62,14 +66,20 @@ impl Sudoko {
 
     pub fn get_value(&self, row: usize, col: usize) -> Result<&SudokoValue, String> {
 
-        let index = self.convert_to_index(row, col)?;
+        let index = Sudoko::convert_to_index(row, col)?;
 
         Ok(self.data[index.index_block].get_value(index.internal_row, index.internal_col).unwrap())
     }
 
     pub fn set_value(&mut self, row: usize, col: usize, value: SudokoValue) -> Result<(), String> {
+        
+        // Check if the value is locked
+        if self.lock.contains(&(row, col)) {
+            return Err("Value is locked!".to_string())
+        }
+        
         // Validate that row is betwen 1 and 9
-        let index = self.convert_to_index(row, col)?;
+        let index = Sudoko::convert_to_index(row, col)?;
 
         self.data[index.index_block].set_value(index.internal_row, index.internal_col, value)?;
 
@@ -77,7 +87,7 @@ impl Sudoko {
     }
 
     pub fn select_value(&mut self, row: usize, col: usize) -> Result<(), String> {
-        let index = self.convert_to_index(row, col)?;
+        let index = Sudoko::convert_to_index(row, col)?;
 
         // Unselect the old value
         if let Some(select_index) = self.selected {
@@ -190,7 +200,7 @@ impl Sudoko {
         let mut value_set: HashSet<usize> = HashSet::new();
 
         for col in 1..=9 {
-            let index = self.convert_to_index(row, col)?;
+            let index = Sudoko::convert_to_index(row, col)?;
 
             match self.data[index.index_block]
                     .get_value(index.internal_row, index.internal_col)?
@@ -214,7 +224,7 @@ impl Sudoko {
         let mut value_set: HashSet<usize> = HashSet::new();
 
         for row in 1..=9 {
-            let index = self.convert_to_index(row, col)?;
+            let index = Sudoko::convert_to_index(row, col)?;
 
             match self.data[index.index_block]
                     .get_value(index.internal_row, index.internal_col)?
@@ -243,14 +253,14 @@ impl Sudoko {
 
     pub fn find_possible_values(&self, row: usize, col: usize) -> Result<Option<Vec<SudokoValue>>, String> {
 
-        let index = self.convert_to_index(row, col)?;
+        let index = Sudoko::convert_to_index(row, col)?;
 
         let mut possible_values_set = SudokoValue::full_hashset()?;
 
         // Check values in rows
         for row_i in 1..=9 {
             if row_i == row { continue; }
-            let temp_index = self.convert_to_index(row_i, col)?;
+            let temp_index = Sudoko::convert_to_index(row_i, col)?;
             let value = self.data[temp_index.index_block].get_value(temp_index.internal_row, temp_index.internal_col)?;
             if possible_values_set.contains(&value) {
                 possible_values_set.remove(&value);
@@ -260,7 +270,7 @@ impl Sudoko {
         // Check values in cols
         for col_i in 1..=9 {
             if col_i == col { continue; }
-            let temp_index = self.convert_to_index(row, col_i)?;
+            let temp_index = Sudoko::convert_to_index(row, col_i)?;
             let value = self.data[temp_index.index_block].get_value(temp_index.internal_row, temp_index.internal_col)?;
             if possible_values_set.contains(&value) {
                 possible_values_set.remove(&value);
@@ -286,6 +296,36 @@ impl Sudoko {
         Ok(Some(possible_values))
     }
 
+    pub fn lock(&mut self) -> Result<(), String> {
+
+        for row in 1..=9 {
+            for col in 1..=9 {
+                let index = Sudoko::convert_to_index(row, col)?;
+
+                let value = self.data[index.index_block].get_value(index.internal_row, index.internal_col)?;
+
+                match value {
+                    SudokoValue::Empty(_) => (),
+                    _ => {
+                        // Add value into lock
+                        self.lock.insert((row, col));
+                    }
+                }
+
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn is_locked(&self, row: usize, col: usize) -> bool {
+        self.lock.contains(&(row, col))
+    }
+
+    pub fn unlock(&mut self) {
+        self.lock.clear()
+    }
+
 }
 
 impl Display for Sudoko {
@@ -309,15 +349,69 @@ impl Display for Sudoko {
                     2 => {
                         for col in 1..=9 {
                             match col {
-                                1 => write!(f, "┃ {} ", self.get_value(row, col).unwrap())?,
-                                2 => write!(f, "│ {} ", self.get_value(row, col).unwrap())?,
-                                3 => write!(f, "│ {} ", self.get_value(row, col).unwrap())?,
-                                4 => write!(f, "┃ {} ", self.get_value(row, col).unwrap())?,
-                                5 => write!(f, "│ {} ", self.get_value(row, col).unwrap())?,
-                                6 => write!(f, "│ {} ", self.get_value(row, col).unwrap())?,
-                                7 => write!(f, "┃ {} ", self.get_value(row, col).unwrap())?,
-                                8 => write!(f, "│ {} ", self.get_value(row, col).unwrap())?,
-                                9 => write!(f, "│ {} ", self.get_value(row, col).unwrap())?,
+                                1 => {
+                                    match self.is_locked(row, col) {
+                                        false => write!(f, "┃ {} ", self.get_value(row, col).unwrap())?,
+                                        true => write!(f, "┃ {} ", self.get_value(row, col).unwrap()
+                                            .to_string().as_str().underline())?
+                                    }
+                                },
+                                2 => {
+                                    match self.is_locked(row, col) {
+                                        false => write!(f, "│ {} ", self.get_value(row, col).unwrap())?,
+                                        true => write!(f, "│ {} ", self.get_value(row, col).unwrap()
+                                            .to_string().as_str().underline())?
+                                    }
+                                },
+                                3 => {
+                                    match self.is_locked(row, col) {
+                                        false => write!(f, "│ {} ", self.get_value(row, col).unwrap())?,
+                                        true => write!(f, "│ {} ", self.get_value(row, col).unwrap()
+                                            .to_string().as_str().underline())?
+                                    }
+                                },
+                                4 => {
+                                    match self.is_locked(row, col) {
+                                        false => write!(f, "┃ {} ", self.get_value(row, col).unwrap())?,
+                                        true => write!(f, "┃ {} ", self.get_value(row, col).unwrap()
+                                            .to_string().as_str().underline())?
+                                    }
+                                },
+                                5 => {
+                                    match self.is_locked(row, col) {
+                                        false => write!(f, "│ {} ", self.get_value(row, col).unwrap())?,
+                                        true => write!(f, "│ {} ", self.get_value(row, col).unwrap()
+                                            .to_string().as_str().underline())?
+                                    }
+                                },
+                                6 => {
+                                    match self.is_locked(row, col) {
+                                        false => write!(f, "│ {} ", self.get_value(row, col).unwrap())?,
+                                        true => write!(f, "│ {} ", self.get_value(row, col).unwrap()
+                                            .to_string().as_str().underline())?
+                                    }
+                                },
+                                7 => {
+                                    match self.is_locked(row, col) {
+                                        false => write!(f, "┃ {} ", self.get_value(row, col).unwrap())?,
+                                        true => write!(f, "┃ {} ", self.get_value(row, col).unwrap()
+                                            .to_string().as_str().underline())?
+                                    }
+                                },
+                                8 => {
+                                    match self.is_locked(row, col) {
+                                        false => write!(f, "│ {} ", self.get_value(row, col).unwrap())?,
+                                        true => write!(f, "│ {} ", self.get_value(row, col).unwrap()
+                                            .to_string().as_str().underline())?
+                                    }
+                                },
+                                9 => {
+                                    match self.is_locked(row, col) {
+                                        false => write!(f, "│ {} ", self.get_value(row, col).unwrap())?,
+                                        true => write!(f, "│ {} ", self.get_value(row, col).unwrap()
+                                            .to_string().as_str().underline())?
+                                    }
+                                },
                                 _ => writeln!(f, "")?
                             }
                         }
