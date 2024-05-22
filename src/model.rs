@@ -1,6 +1,7 @@
 use std::{collections::HashSet, fmt::Display};
 
 use colored::Colorize;
+use itertools::Itertools;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -240,7 +241,7 @@ impl Sudoko {
         Ok(())
     }
 
-    fn find_possible_values(&self, row: usize, col: usize) -> Result<Option<Vec<SudokoValue>>, String> {
+    pub fn find_possible_values(&self, row: usize, col: usize) -> Result<Option<Vec<SudokoValue>>, String> {
 
         let index = self.convert_to_index(row, col)?;
 
@@ -250,7 +251,7 @@ impl Sudoko {
         for row_i in 1..=9 {
             if row_i == row { continue; }
             let temp_index = self.convert_to_index(row_i, col)?;
-            let value = self.data[temp_index.index_block].get_value(temp_index.internal_row, col)?;
+            let value = self.data[temp_index.index_block].get_value(temp_index.internal_row, temp_index.internal_col)?;
             if possible_values_set.contains(&value) {
                 possible_values_set.remove(&value);
             }
@@ -260,7 +261,7 @@ impl Sudoko {
         for col_i in 1..=9 {
             if col_i == col { continue; }
             let temp_index = self.convert_to_index(row, col_i)?;
-            let value = self.data[temp_index.index_block].get_value(temp_index.internal_row, col)?;
+            let value = self.data[temp_index.index_block].get_value(temp_index.internal_row, temp_index.internal_col)?;
             if possible_values_set.contains(&value) {
                 possible_values_set.remove(&value);
             }
@@ -268,10 +269,21 @@ impl Sudoko {
 
         // Remove values already in same block
         for value in self.data[index.index_block].get_values() {
-
+            if possible_values_set.contains(&value) {
+                possible_values_set.remove(&value);
+            }
         }
 
-        Err("Not implemented yet".to_string())
+        let mut possible_values: Vec<SudokoValue> = Vec::new();
+
+        println!("Possible values: ");
+        for value in possible_values_set.into_iter().sorted() {
+            possible_values.push(value);
+            print!("{value} ")
+        }
+        println!();
+
+        Ok(Some(possible_values))
     }
 
 }
@@ -364,8 +376,27 @@ impl SudokoBlock {
         Ok(&self.data[index.index_block])
     }
 
-    pub fn get_values(&self) -> Result<Vec<&SudokoValue>, String> {
-        todo!()
+    pub fn get_values(&self) -> Vec<SudokoValue> {
+        
+        let mut values: Vec<SudokoValue> = Vec::new();
+
+        for value in self.data {
+            match value {
+                SudokoValue::One(_) => values.push(SudokoValue::One(false)),
+                SudokoValue::Two(_) => values.push(SudokoValue::Two(false)),
+                SudokoValue::Three(_) => values.push(SudokoValue::Three(false)),
+                SudokoValue::Four(_) => values.push(SudokoValue::Four(false)),
+                SudokoValue::Five(_) => values.push(SudokoValue::Five(false)),
+                SudokoValue::Six(_) => values.push(SudokoValue::Six(false)),
+                SudokoValue::Seven(_) => values.push(SudokoValue::Seven(false)),
+                SudokoValue::Eight(_) => values.push(SudokoValue::Eight(false)),
+                SudokoValue::Nine(_) => values.push(SudokoValue::Nine(false)),
+                SudokoValue::Empty(_) => (),
+            }
+        }
+
+        values
+
     }
 
     pub fn set_value(&mut self, row: usize, col: usize, value: SudokoValue) -> Result<(), String> {
@@ -398,7 +429,7 @@ impl SudokoBlock {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum SudokoValue {
     One(bool), Two(bool), Three(bool),
     Four(bool), Five(bool), Six(bool),

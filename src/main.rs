@@ -31,6 +31,7 @@ fn main() {
         println!("[n] generate a new puzzle");
         println!("[s] solve the puzzle");
         println!("[q/esc] quit");
+        sudoko.find_possible_values(cursor.row, cursor.col).unwrap();
 
         if let Err(e) = sudoko.validate() {
             println!("Validation error: {}", e.as_str().bright_red());
