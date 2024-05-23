@@ -53,7 +53,6 @@ fn main() {
                 console::Key::ArrowDown => {
                     cursor.move_down();
                 },
-                console::Key::Enter => todo!(),
                 console::Key::Escape => break 'main_loop,
                 console::Key::Backspace => {
                     match sudoko.set_value(cursor.row, cursor.col, SudokoValue::Empty(true)) {
@@ -124,7 +123,7 @@ fn main() {
                         _ => ()
                     }
                 },
-                _ => todo!(),
+                _ => (),
             }
         } 
 
