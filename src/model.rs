@@ -1,4 +1,4 @@
-use std::{collections::HashSet, fmt::Display, io::Empty, thread, time::Duration};
+use std::{collections::{hash_map::Values, HashMap, HashSet}, fmt::Display, io::Empty, thread, time::Duration};
 
 use colored::Colorize;
 use itertools::Itertools;
@@ -244,11 +244,81 @@ impl Sudoko {
     }
 
     pub fn solve(&mut self) -> Result<(), String> {
-
         
-
+        self.solve_step()?;
 
         Ok(())
+    }
+
+    pub fn solve_step(&mut self) -> Result<Cursor, String> {
+
+        let mut blocks_values: HashMap<usize, Vec<(SudokoIndex, Vec<SudokoValue>)>> = HashMap::new();
+
+        // init hashmap
+        for i in 0..9 {
+            blocks_values.insert(i, Vec::new());
+        }
+
+        for row in 1..=9 {
+            for col in 1..=9 {
+                match self.get_value(row, col)? {
+                    SudokoValue::Empty(_) => {
+                        let possible_values = self.find_possible_values(row, col)?;
+                        if let Some(mut values) = possible_values {
+                            if values.len() == 1 {
+                                if let Some(value) = values.pop() {
+                                    match self.set_value(row, col, value) {
+                                        Err(_) => (),
+                                        Ok(_) => return Ok(Cursor {row, col})
+                                    }
+                                }
+                            } else {
+                                let index = Sudoko::convert_to_index(row, col)?;
+                                if let Some(block) = blocks_values.get_mut(&index.index_block) {
+                                    block.push((index, values))
+                                }
+                            }
+                        }
+                    },
+                    _ => continue
+                }
+                
+            }
+        }
+
+        // Check each block individually, and find a unique value
+        for i in 0..9 {
+            let mut by_value: HashMap<&SudokoValue, Vec<&SudokoIndex>> = HashMap::new();
+            if let Some(block) = blocks_values.get(&i) {
+                for (index, group) in block {
+                    for value in group {
+                        if !by_value.contains_key(&value) {
+                            by_value.insert(value, Vec::new());
+                        }
+
+                        if let Some(add_value) = by_value.get_mut(&value) {
+                            add_value.push(index);
+                        }
+                    }
+                }
+            }
+
+            for (value, indexes) in by_value {
+                if indexes.len() == 1 {
+
+                    if let Some(index) = indexes.get(0) {
+                        match self.set_value(index.row, index.col, *value) {
+                            Err(_) => (),
+                            Ok(_) => return Ok(Cursor {row: index.row, col: index.col})
+                        }
+                    }
+                    
+                }
+            }
+
+        }
+
+        Ok(Cursor::new())
     }
 
     pub fn find_possible_values(&self, row: usize, col: usize) -> Result<Option<Vec<SudokoValue>>, String> {
@@ -292,6 +362,11 @@ impl Sudoko {
             print!("{value} ")
         }
         println!();
+
+        if possible_values.len() == 0 {
+            // No value
+            return Ok(None)
+        }
 
         Ok(Some(possible_values))
     }

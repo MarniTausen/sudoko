@@ -30,6 +30,7 @@ fn main() {
         println!("[backspace] remove value");
         println!("[n] generate a new puzzle");
         println!("[l] lock values [u] unlock values");
+        println!("[h] help / solve 1 step");
         println!("[s] solve the puzzle");
         println!("[q/esc] quit");
         sudoko.find_possible_values(cursor.row, cursor.col).unwrap();
@@ -63,7 +64,8 @@ fn main() {
                 console::Key::Char(character) => {
                     match character {
                         'q' => break 'main_loop,
-                        's' => println!("Solve not implemented yet!") /* Solve sudoko puzzle */,
+                        'h' => cursor = sudoko.solve_step().unwrap(),
+                        's' => sudoko.solve().unwrap(),
                         'l' => sudoko.lock().unwrap(),
                         'u' => sudoko.unlock(),
                         '1' => {
