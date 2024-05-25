@@ -33,7 +33,14 @@ fn main() {
         println!("[h] help / solve 1 step");
         println!("[s] solve the puzzle");
         println!("[q/esc] quit");
-        sudoko.find_possible_values(cursor.row, cursor.col).unwrap();
+        if let Some(possible_values) = sudoko.find_possible_values(cursor.row, cursor.col).unwrap() {
+            println!("Possible values: ");
+            for value in possible_values {
+                print!("{value} ")
+            }
+            println!();
+        }
+        
 
         if let Err(e) = sudoko.validate() {
             println!("Validation error: {}", e.as_str().bright_red());

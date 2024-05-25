@@ -356,12 +356,9 @@ impl Sudoko {
 
         let mut possible_values: Vec<SudokoValue> = Vec::new();
 
-        println!("Possible values: ");
         for value in possible_values_set.into_iter().sorted() {
             possible_values.push(value);
-            print!("{value} ")
         }
-        println!();
 
         if possible_values.len() == 0 {
             // No value
